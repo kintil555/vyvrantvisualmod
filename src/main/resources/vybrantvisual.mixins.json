@@ -3,7 +3,9 @@
   "minVersion": "0.8",
   "package": "com.bloom.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": [],
+  "client": [
+    "client.FixedScaleScreenRenderMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

@@ -5,6 +5,6 @@ import com.terraformersmc.modmenu.api.ModMenuApi;
 
 public class BloomModMenuIntegration implements ModMenuApi {
    public ConfigScreenFactory<?> getModConfigScreenFactory() {
-      return BloomConfigScreen::create;
+      return VybrantVisualConfigScreen::create;
    }
 }

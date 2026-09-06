@@ -12,6 +12,17 @@ base {
 
 repositories {
 	maven { url "https://maven.terraformersmc.com/releases/" } // Mod Menu
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = "Modrinth"
+				url = "https://api.modrinth.com/maven"
+			}
+		}
+		filter {
+			includeGroup "maven.modrinth"
+		}
+	}
 }
 
 loom {
@@ -27,6 +38,11 @@ dependencies {
 
 	// Mod Menu integration (BloomModMenuIntegration.java depends on this)
 	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+	// Sodium internals are referenced by SodiumVulkanTerrainUniforms (Vulkan terrain pass hook).
+	// compileOnly + not bundled: Sodium is an optional runtime dependency, guarded at runtime
+	// by ShineRenderBackend.isVulkan() / Sodium-presence checks.
+	modCompileOnly "maven.modrinth:AANobbMI:${project.sodium_version}"
 }
 
 java {
