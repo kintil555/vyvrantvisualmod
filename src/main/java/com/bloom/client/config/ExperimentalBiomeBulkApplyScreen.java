@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -15,6 +15,9 @@ import net.minecraft.network.chat.Component;
 /**
  * Simple checklist screen: pick a subset of candidate ids (blocks/fluids), then apply.
  * Used by BloomConfigScreen's "Copy Bloom To Blocks/Fluids" action.
+ *
+ * Rows are plain toggle buttons ("[x] id" / "[ ] id") rather than Checkbox widgets,
+ * since Checkbox has no usable public constructor/builder in this Minecraft version.
  */
 public final class ExperimentalBiomeBulkApplyScreen extends FixedScaleScreen {
    private static final int ROW_HEIGHT = 18;
@@ -66,32 +69,32 @@ public final class ExperimentalBiomeBulkApplyScreen extends FixedScaleScreen {
       for (int row = 0; row < shown; row++) {
          String id = this.filtered.get(row);
          int rowY = listTop + row * ROW_HEIGHT;
-         Checkbox checkbox = new Checkbox.Builder(Component.literal(id), this.font)
-            .pos(x, rowY)
-            .selected(this.selected.contains(id))
-            .onValueChange((box, value) -> {
-               if (value) {
-                  this.selected.add(id);
-               } else {
-                  this.selected.remove(id);
-               }
-               this.refreshApplyLabel();
-            })
-            .build();
-         this.addRenderableWidget(checkbox);
+         this.addRenderableWidget(Button.builder(rowLabel(id, this.selected.contains(id)), (button) -> {
+            if (this.selected.contains(id)) {
+               this.selected.remove(id);
+            } else {
+               this.selected.add(id);
+            }
+            button.setMessage(rowLabel(id, this.selected.contains(id)));
+            this.refreshApplyLabel();
+         }).bounds(x, rowY, panelWidth, ROW_HEIGHT - 2).build());
       }
 
       this.applyButton = Button.builder(this.applyLabel(), (button) -> {
          if (this.onApply != null) {
             this.onApply.accept(new LinkedHashSet<>(this.selected));
          }
-         this.minecraft.setScreen(this.parent);
+         Minecraft.getInstance().setScreen(this.parent);
       }).bounds(x, this.height - 28, panelWidth / 2 - 4, 20).build();
       this.addRenderableWidget(this.applyButton);
 
       this.addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), (button) -> this.onClose())
          .bounds(x + panelWidth / 2 + 4, this.height - 28, panelWidth / 2 - 4, 20).build());
       this.initializing = false;
+   }
+
+   private static Component rowLabel(String id, boolean checked) {
+      return Component.literal((checked ? "[x] " : "[ ] ") + id);
    }
 
    private Component applyLabel() {
@@ -122,6 +125,6 @@ public final class ExperimentalBiomeBulkApplyScreen extends FixedScaleScreen {
    }
 
    public void onClose() {
-      this.minecraft.setScreen(this.parent);
+      Minecraft.getInstance().setScreen(this.parent);
    }
 }

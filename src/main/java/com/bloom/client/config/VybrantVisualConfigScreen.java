@@ -1,6 +1,7 @@
 package com.bloom.client.config;
 
 import com.bloom.client.BloomClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -32,7 +33,7 @@ public final class VybrantVisualConfigScreen extends Screen {
       int y = (this.height - totalHeight) / 2;
 
       this.addRenderableWidget(Button.builder(Component.literal("Bloom"), (button) ->
-         this.minecraft.setScreen(BloomConfigScreen.create(this))
+         Minecraft.getInstance().setScreen(BloomConfigScreen.create(this))
       ).bounds(x, y, buttonWidth, buttonHeight).build());
 
       this.addRenderableWidget(Button.builder(Component.literal("Water Foam"), (button) ->
@@ -44,6 +45,6 @@ public final class VybrantVisualConfigScreen extends Screen {
    }
 
    public void onClose() {
-      this.minecraft.setScreen(this.parent);
+      Minecraft.getInstance().setScreen(this.parent);
    }
 }

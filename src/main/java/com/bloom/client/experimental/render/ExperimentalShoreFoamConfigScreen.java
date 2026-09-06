@@ -1,5 +1,6 @@
-package com.bloom.client.config;
+package com.bloom.client.experimental.render;
 
+import com.bloom.client.config.FixedScaleScreen;
 import com.bloom.client.experimental.config.ShoreFoamConfig;
 import com.bloom.client.experimental.config.ShoreFoamConfigManager;
 import com.mojang.blaze3d.platform.NativeImage;

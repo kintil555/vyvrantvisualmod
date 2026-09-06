@@ -2093,7 +2093,7 @@ public final class BloomConfigScreen extends FixedScaleScreen {
 
    private static void addSiblingEmissiveLayerOptions(List<ModelLayerOption> layers, TextureAtlas atlas) {
       if (layers != null && !layers.isEmpty() && atlas != null) {
-         for(ModelLayerOption layer : new ArrayList(layers)) {
+         for(ModelLayerOption layer : new ArrayList<ModelLayerOption>(layers)) {
             String spriteId = layer.spriteId();
             if (spriteId != null && !spriteId.isBlank() && !spriteId.endsWith("_emissive")) {
                String emissiveSpriteId = spriteId + "_emissive";

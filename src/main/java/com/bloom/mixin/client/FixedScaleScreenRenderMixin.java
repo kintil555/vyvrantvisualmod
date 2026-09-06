@@ -18,7 +18,7 @@ public abstract class FixedScaleScreenRenderMixin {
       ordinal = 0
    )
    private int shine$fixedScreenWidth(int width) {
-      if (this instanceof FixedScaleScreen screen) {
+      if ((Object) this instanceof FixedScaleScreen screen) {
          return screen.fixedScreenWidth();
       } else {
          return width;
@@ -32,7 +32,7 @@ public abstract class FixedScaleScreenRenderMixin {
       ordinal = 1
    )
    private int shine$fixedScreenHeight(int height) {
-      if (this instanceof FixedScaleScreen screen) {
+      if ((Object) this instanceof FixedScaleScreen screen) {
          return screen.fixedScreenHeight();
       } else {
          return height;
@@ -44,7 +44,7 @@ public abstract class FixedScaleScreenRenderMixin {
       at = {@At("HEAD")}
    )
    private void shine$beginFixedScaleRender(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-      if (this instanceof FixedScaleScreen screen) {
+      if ((Object) this instanceof FixedScaleScreen screen) {
          screen.beginFixedScaleRender(guiGraphics);
       }
 
@@ -55,7 +55,7 @@ public abstract class FixedScaleScreenRenderMixin {
       at = {@At("RETURN")}
    )
    private void shine$endFixedScaleRender(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-      if (this instanceof FixedScaleScreen screen) {
+      if ((Object) this instanceof FixedScaleScreen screen) {
          screen.endFixedScaleRender(guiGraphics);
       }
 
@@ -68,7 +68,7 @@ public abstract class FixedScaleScreenRenderMixin {
       ordinal = 0
    )
    private int shine$fixedMouseX(int mouseX) {
-      if (this instanceof FixedScaleScreen screen) {
+      if ((Object) this instanceof FixedScaleScreen screen) {
          return screen.fixedMouseX(mouseX);
       } else {
          return mouseX;
@@ -82,7 +82,7 @@ public abstract class FixedScaleScreenRenderMixin {
       ordinal = 1
    )
    private int shine$fixedMouseY(int mouseY) {
-      if (this instanceof FixedScaleScreen screen) {
+      if ((Object) this instanceof FixedScaleScreen screen) {
          return screen.fixedMouseY(mouseY);
       } else {
          return mouseY;
