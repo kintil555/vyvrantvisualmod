@@ -1,7 +1,6 @@
 package com.bloom.client.config;
 
 import com.bloom.BloomMod;
-import com.bloom.client.resource.ShineResourceDefaults;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -99,13 +98,12 @@ public final class BloomConfig {
    }
 
    public static long version() {
-      return version * 31L + ShineResourceDefaults.version();
+      return version;
    }
 
    public static void save() {
       try {
          ShineAtomicFiles.writeUtf8(configPath(), (writer) -> GSON.toJson(data, writer));
-         ShinePresetStateManager.captureLocalOverridesAfterUserSave();
       } catch (IOException e) {
          BloomMod.LOGGER.error("Failed to write Shine config.", e);
       }
@@ -276,18 +274,6 @@ public final class BloomConfig {
    }
 
    private static Data loadBundledDefaults() {
-      JsonObject canonical = ShineDefaultBaseline.section("bloom");
-      if (canonical != null) {
-         try {
-            Data loaded = (Data)GSON.fromJson(canonical, Data.class);
-            if (loaded != null) {
-               return sanitize(loaded, (JsonObject)null);
-            }
-         } catch (Exception exception) {
-            BloomMod.LOGGER.error("Failed to read bloom defaults from the canonical Shine Default baseline.", exception);
-         }
-      }
-
       try {
          InputStream stream = BloomConfig.class.getResourceAsStream("/assets/shine/defaults/shine.json");
 

@@ -11,6 +11,8 @@ import com.bloom.client.render.BloomPostProcessor;
 import com.bloom.client.render.LevelRendererRebuilds;
 import com.bloom.client.render.ShineRenderBackend;
 import com.bloom.client.render.TransientMeshArena;
+import com.bloom.client.experimental.config.ShoreFoamConfigManager;
+import com.bloom.client.experimental.render.ExperimentalShoreFoamConfigScreen;
 import com.mojang.blaze3d.platform.InputConstants.Type;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -19,6 +21,7 @@ import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping.Category;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.Identifier;
@@ -42,6 +45,7 @@ public class BloomClient implements ClientModInitializer {
 
       BloomConfig.load();
       BloomMaskConfig.load();
+      ShoreFoamConfigManager.load();
 
       ClientLifecycleEvents.CLIENT_STOPPING.register((ClientLifecycleEvents.ClientStopping)(client) -> {
          BloomPostProcessor.shutdown();
@@ -78,14 +82,10 @@ public class BloomClient implements ClientModInitializer {
    }
 
    /**
-    * Opens the shore foam config screen. Not yet wired up: ExperimentalShoreFoamConfigScreen
-    * requires ExperimentalConfig + ExperimentalConfigManager instances, which are not part of
-    * this trimmed-down build. Once those are added, replace the nulls below with real instances
-    * (e.g. ExperimentalConfigManager.get() and ExperimentalConfigManager.defaults()).
+    * Opens the shore foam config screen, editing a copy of the current settings.
     */
    public static void openShoreFoamScreen(Screen parent) {
-      throw new UnsupportedOperationException(
-         "Shore foam screen requires ExperimentalConfig/ExperimentalConfigManager, not yet included in this build");
+      Minecraft.getInstance().setScreen(ExperimentalShoreFoamConfigScreen.create(parent, ShoreFoamConfigManager.get().copy(), ShoreFoamConfigManager.defaults()));
    }
 
    static {

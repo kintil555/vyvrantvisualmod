@@ -1,7 +1,7 @@
 package com.bloom.client.config;
 
-import com.bloom.client.experimental.config.ExperimentalConfig;
-import com.bloom.client.experimental.config.ExperimentalConfigManager;
+import com.bloom.client.experimental.config.ShoreFoamConfig;
+import com.bloom.client.experimental.config.ShoreFoamConfigManager;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -40,8 +40,8 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    private static final int SCROLLBAR_WIDTH = 8;
    private static final int MAX_SAVED_WORLD_COLORS = 10;
    private final Screen parent;
-   private final ExperimentalConfig editing;
-   private final ExperimentalConfig defaults;
+   private final ShoreFoamConfig editing;
+   private final ShoreFoamConfig defaults;
    private final List<BiomeEntry> allBiomes = new ArrayList();
    private final List<BiomeEntry> filteredBiomes = new ArrayList();
    private final List<DescribedWidget> describedWidgets = new ArrayList();
@@ -78,7 +78,7 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    private int cachedWheelSize = -1;
    private float cachedWheelHue = -1.0F;
 
-   private ExperimentalShoreFoamConfigScreen(Screen parent, ExperimentalConfig editing, ExperimentalConfig defaults) {
+   private ExperimentalShoreFoamConfigScreen(Screen parent, ShoreFoamConfig editing, ShoreFoamConfig defaults) {
       super(Component.literal("Shore Foam"));
       this.parent = parent;
       this.editing = editing;
@@ -89,7 +89,7 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
       this.applyFilter("");
    }
 
-   public static Screen create(Screen parent, ExperimentalConfig editing, ExperimentalConfig defaults) {
+   public static Screen create(Screen parent, ShoreFoamConfig editing, ShoreFoamConfig defaults) {
       return new ExperimentalShoreFoamConfigScreen(parent, editing, defaults);
    }
 
@@ -215,6 +215,16 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    }
 
    public void onClose() {
+      ShoreFoamConfigManager.get().enabled = this.editing.enabled;
+      ShoreFoamConfigManager.get().opacity = this.editing.opacity;
+      ShoreFoamConfigManager.get().thickness = this.editing.thickness;
+      ShoreFoamConfigManager.get().speed = this.editing.speed;
+      ShoreFoamConfigManager.get().scale = this.editing.scale;
+      ShoreFoamConfigManager.get().breakup = this.editing.breakup;
+      ShoreFoamConfigManager.get().color = this.editing.color;
+      ShoreFoamConfigManager.get().biomes = this.editing.biomes;
+      ShoreFoamConfigManager.get().savedPickerColors = this.editing.savedPickerColors;
+      ShoreFoamConfigManager.save();
       Minecraft.getInstance().gui.setScreen(this.parent);
    }
 
@@ -227,8 +237,8 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
       this.addDescribedWidget(new LabeledSlider(x, y, width, Component.literal(label), min, max, step, getter, setter, (value) -> String.format(Locale.ROOT, format, value)), description);
    }
 
-   private void updateSelectedProfile(Consumer<ExperimentalConfig.ShoreFoamBiomeProfile> update) {
-      ExperimentalConfig.ShoreFoamBiomeProfile profile = this.selectedProfileForEdit();
+   private void updateSelectedProfile(Consumer<ShoreFoamConfig.BiomeProfile> update) {
+      ShoreFoamConfig.BiomeProfile profile = this.selectedProfileForEdit();
       update.accept(profile);
       if (this.selectedGlobal) {
          this.applyProfileToGlobal(profile);
@@ -238,56 +248,56 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
       this.applyPreview();
    }
 
-   private ExperimentalConfig.ShoreFoamBiomeProfile selectedProfileView() {
+   private ShoreFoamConfig.BiomeProfile selectedProfileView() {
       if (!this.selectedGlobal && !this.selectedBiomeId.isBlank()) {
-         if (this.editing.shoreFoamBiomes != null) {
-            ExperimentalConfig.ShoreFoamBiomeProfile override = (ExperimentalConfig.ShoreFoamBiomeProfile)this.editing.shoreFoamBiomes.get(this.selectedBiomeId);
+         if (this.editing.biomes != null) {
+            ShoreFoamConfig.BiomeProfile override = this.editing.biomes.get(this.selectedBiomeId);
             if (override != null) {
                return override;
             }
          }
 
-         return this.editing.defaultShoreFoamProfile();
+         return this.editing.defaultProfile();
       } else {
-         return this.editing.defaultShoreFoamProfile();
+         return this.editing.defaultProfile();
       }
    }
 
-   private ExperimentalConfig.ShoreFoamBiomeProfile selectedProfileForEdit() {
+   private ShoreFoamConfig.BiomeProfile selectedProfileForEdit() {
       if (!this.selectedGlobal && !this.selectedBiomeId.isBlank()) {
-         if (this.editing.shoreFoamBiomes == null) {
-            this.editing.shoreFoamBiomes = new LinkedHashMap();
+         if (this.editing.biomes == null) {
+            this.editing.biomes = new LinkedHashMap();
          }
 
-         return (ExperimentalConfig.ShoreFoamBiomeProfile)this.editing.shoreFoamBiomes.computeIfAbsent(this.selectedBiomeId, (ignored) -> this.editing.defaultShoreFoamProfile());
+         return this.editing.biomes.computeIfAbsent(this.selectedBiomeId, (ignored) -> this.editing.defaultProfile());
       } else {
-         return this.editing.defaultShoreFoamProfile();
+         return this.editing.defaultProfile();
       }
    }
 
-   private void applyProfileToGlobal(ExperimentalConfig.ShoreFoamBiomeProfile profile) {
-      this.editing.shoreFoamEnabled = profile.enabled;
-      this.editing.shoreFoamOpacity = profile.opacity;
-      this.editing.shoreFoamThickness = profile.thickness;
-      this.editing.shoreFoamSpeed = profile.speed;
-      this.editing.shoreFoamScale = profile.scale;
-      this.editing.shoreFoamBreakup = profile.breakup;
-      this.editing.shoreFoamColor = profile.color & 16777215;
+   private void applyProfileToGlobal(ShoreFoamConfig.BiomeProfile profile) {
+      this.editing.enabled = profile.enabled;
+      this.editing.opacity = profile.opacity;
+      this.editing.thickness = profile.thickness;
+      this.editing.speed = profile.speed;
+      this.editing.scale = profile.scale;
+      this.editing.breakup = profile.breakup;
+      this.editing.color = profile.color & 16777215;
    }
 
    private void resetSelected() {
       if (this.selectedGlobal) {
-         this.applyProfileToGlobal(this.defaults.defaultShoreFoamProfile());
+         this.applyProfileToGlobal(this.defaults.defaultProfile());
       } else {
-         if (this.editing.shoreFoamBiomes == null) {
-            this.editing.shoreFoamBiomes = new LinkedHashMap();
+         if (this.editing.biomes == null) {
+            this.editing.biomes = new LinkedHashMap();
          }
 
-         ExperimentalConfig.ShoreFoamBiomeProfile defaultOverride = this.defaults.shoreFoamBiomes == null ? null : (ExperimentalConfig.ShoreFoamBiomeProfile)this.defaults.shoreFoamBiomes.get(this.selectedBiomeId);
+         ShoreFoamConfig.BiomeProfile defaultOverride = this.defaults.biomes == null ? null : this.defaults.biomes.get(this.selectedBiomeId);
          if (defaultOverride == null) {
-            this.editing.shoreFoamBiomes.remove(this.selectedBiomeId);
+            this.editing.biomes.remove(this.selectedBiomeId);
          } else {
-            this.editing.shoreFoamBiomes.put(this.selectedBiomeId, defaultOverride.copy());
+            this.editing.biomes.put(this.selectedBiomeId, defaultOverride.copy());
          }
       }
 
@@ -296,12 +306,12 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    }
 
    private void resetAll() {
-      this.applyProfileToGlobal(this.defaults.defaultShoreFoamProfile());
-      this.editing.shoreFoamBiomes = new LinkedHashMap();
-      if (this.defaults.shoreFoamBiomes != null) {
-         for(Map.Entry<String, ExperimentalConfig.ShoreFoamBiomeProfile> entry : this.defaults.shoreFoamBiomes.entrySet()) {
+      this.applyProfileToGlobal(this.defaults.defaultProfile());
+      this.editing.biomes = new LinkedHashMap();
+      if (this.defaults.biomes != null) {
+         for(Map.Entry<String, ShoreFoamConfig.BiomeProfile> entry : this.defaults.biomes.entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
-               this.editing.shoreFoamBiomes.put((String)entry.getKey(), ((ExperimentalConfig.ShoreFoamBiomeProfile)entry.getValue()).copy());
+               this.editing.biomes.put((String)entry.getKey(), entry.getValue().copy());
             }
          }
       }
@@ -314,7 +324,7 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    }
 
    private void refreshLabels() {
-      ExperimentalConfig.ShoreFoamBiomeProfile profile = this.selectedProfileView();
+      ShoreFoamConfig.BiomeProfile profile = this.selectedProfileView();
       if (this.enabledButton != null) {
          String prefix = this.selectedGlobal ? "Default Shore Foam" : shortBiomeLabel(this.selectedBiomeId) + " Shore Foam";
          this.enabledButton.setMessage(Component.literal(prefix + (profile.enabled ? ": ON" : ": OFF")));
@@ -328,11 +338,13 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    }
 
    private boolean hasSelectedOverride() {
-      return !this.selectedGlobal && this.editing.shoreFoamBiomes != null && this.editing.shoreFoamBiomes.containsKey(this.selectedBiomeId);
+      return !this.selectedGlobal && this.editing.biomes != null && this.editing.biomes.containsKey(this.selectedBiomeId);
    }
 
+   private static final String[] VANILLA_BIOME_IDS = new String[]{"minecraft:plains", "minecraft:sunflower_plains", "minecraft:forest", "minecraft:flower_forest", "minecraft:birch_forest", "minecraft:old_growth_birch_forest", "minecraft:dark_forest", "minecraft:taiga", "minecraft:snowy_taiga", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:jungle", "minecraft:bamboo_jungle", "minecraft:sparse_jungle", "minecraft:cherry_grove", "minecraft:meadow", "minecraft:grove", "minecraft:snowy_slopes", "minecraft:jagged_peaks", "minecraft:frozen_peaks", "minecraft:stony_peaks", "minecraft:savanna", "minecraft:savanna_plateau", "minecraft:windswept_hills", "minecraft:windswept_gravelly_hills", "minecraft:windswept_forest", "minecraft:windswept_savanna", "minecraft:desert", "minecraft:swamp", "minecraft:mangrove_swamp", "minecraft:badlands", "minecraft:eroded_badlands", "minecraft:wooded_badlands", "minecraft:mushroom_fields", "minecraft:beach", "minecraft:snowy_beach", "minecraft:stony_shore", "minecraft:river", "minecraft:frozen_river", "minecraft:ocean", "minecraft:deep_ocean", "minecraft:cold_ocean", "minecraft:deep_cold_ocean", "minecraft:frozen_ocean", "minecraft:deep_frozen_ocean", "minecraft:lukewarm_ocean", "minecraft:deep_lukewarm_ocean", "minecraft:warm_ocean", "minecraft:dripstone_caves", "minecraft:lush_caves", "minecraft:deep_dark", "minecraft:nether_wastes", "minecraft:crimson_forest", "minecraft:warped_forest", "minecraft:soul_sand_valley", "minecraft:basalt_deltas", "minecraft:the_end", "minecraft:end_highlands", "minecraft:end_midlands", "minecraft:small_end_islands", "minecraft:end_barrens"};
+
    private void rebuildBiomeEntries() {
-      Set<String> ids = new LinkedHashSet(ExperimentalBiomeTintConfigScreen.vanillaBiomeIds());
+      Set<String> ids = new LinkedHashSet(List.of(VANILLA_BIOME_IDS));
       Minecraft minecraft = Minecraft.getInstance();
       if (minecraft != null && minecraft.level != null) {
          try {
@@ -341,12 +353,12 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
          }
       }
 
-      if (this.defaults.shoreFoamBiomes != null) {
-         ids.addAll(this.defaults.shoreFoamBiomes.keySet());
+      if (this.defaults.biomes != null) {
+         ids.addAll(this.defaults.biomes.keySet());
       }
 
-      if (this.editing.shoreFoamBiomes != null) {
-         ids.addAll(this.editing.shoreFoamBiomes.keySet());
+      if (this.editing.biomes != null) {
+         ids.addAll(this.editing.biomes.keySet());
       }
 
       String current = this.resolveCurrentBiomeId();
@@ -415,7 +427,7 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
             guiGraphics.fill(x + 2, rowY - 1, contentRight, rowY + 18 - 2, -2006555034);
          }
 
-         boolean modified = !entry.global && ShineDefaultComparison.experimentalMapEntryDiffers("shoreFoamBiomes", entry.id, this.editing.shoreFoamBiomes);
+         boolean modified = !entry.global && this.editing.biomes.containsKey(entry.id);
          String label = entry.global ? "Default / Global" : entry.id + (modified ? " *" : "");
          int color = entry.global ? -86 : (modified ? -1 : -4342339);
          guiGraphics.enableScissor(x + 4, rowY - 2, contentRight - 2, rowY + 18);
@@ -683,11 +695,11 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    }
 
    private List<Integer> savedWorldColors() {
-      if (this.editing.worldColorPickerSavedColors == null) {
-         this.editing.worldColorPickerSavedColors = new ArrayList();
+      if (this.editing.savedPickerColors == null) {
+         this.editing.savedPickerColors = new ArrayList();
       }
 
-      return this.editing.worldColorPickerSavedColors;
+      return this.editing.savedPickerColors;
    }
 
    private void rememberCurrentColor() {
@@ -809,7 +821,6 @@ public final class ExperimentalShoreFoamConfigScreen extends FixedScaleScreen {
    }
 
    private void applyPreview() {
-      ExperimentalConfigManager.preview(this.editing);
    }
 
    private <T extends AbstractWidget> T addDescribedWidget(T widget, String description) {

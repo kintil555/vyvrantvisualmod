@@ -4,7 +4,11 @@
   "package": "com.bloom.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "client.FixedScaleScreenRenderMixin"
+    "client.FixedScaleScreenRenderMixin",
+    "client.accessor.PostChainAccessor",
+    "client.accessor.PostPassAccessor",
+    "client.accessor.GameRendererAccessor",
+    "client.accessor.TextureAtlasAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

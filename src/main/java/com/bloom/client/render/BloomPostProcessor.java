@@ -1,18 +1,7 @@
 package com.bloom.client.render;
 
 import com.bloom.BloomMod;
-import com.bloom.api.ShineCompatibilityApi;
-import com.bloom.api.ShineSystem;
-import com.bloom.client.ShineMasterToggle;
 import com.bloom.client.config.BloomConfig;
-import com.bloom.client.diagnostics.ShineFpsDiagnostics;
-import com.bloom.client.experimental.config.ExperimentalConfig;
-import com.bloom.client.experimental.config.ExperimentalConfigManager;
-import com.bloom.client.experimental.desertdust.DesertDustParticle;
-import com.bloom.client.experimental.fogfx.FogFxParticle;
-import com.bloom.client.experimental.index.ClientSectionFeatureIndex;
-import com.bloom.client.experimental.render.SkyLightOcclusionRenderer;
-import com.bloom.client.experimental.render.sodium.BloomSodiumVisibility;
 import com.bloom.mixin.client.accessor.PostChainAccessor;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.framegraph.FrameGraphBuilder;
@@ -22,15 +11,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelTerrainRenderContext;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientChunkCache;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelTargetBundle;
 import net.minecraft.client.renderer.PostChain;
 import net.minecraft.client.renderer.PostChainConfig;
@@ -40,8 +24,6 @@ import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.ShaderManager;
 import net.minecraft.client.renderer.UniformValue;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
 
 public final class BloomPostProcessor {
    private static final Identifier EXTRACT_SHADER_ID = Identifier.fromNamespaceAndPath("vybrantvisual", "post/bloom_extract");
@@ -84,8 +66,6 @@ public final class BloomPostProcessor {
    private static boolean warnedChainLoadFailure;
    private static boolean loggedRuntimeChainReady;
    private static boolean loggedProcessChainRun;
-   private static boolean compatibilityDisabled;
-   private static String compatibilityMessage;
    private static final boolean[] runtimeChainUniformsDirty;
    private static final PostChain[] runtimeChains;
    private static final int[] runtimeChainWidths;
@@ -116,13 +96,6 @@ public final class BloomPostProcessor {
    private static float lastCombinedNearPlane;
    private static float lastCombinedFarPlane;
    private static boolean loggedCombinedRuntimeChainReady;
-   private static long radiusProfileScanConfigVersion;
-   private static int radiusProfileScanChunkX;
-   private static int radiusProfileScanChunkZ;
-   private static int radiusProfileScanChunkRadius;
-   private static long radiusProfileScanIndexGeneration;
-   private static int radiusProfilesNearbyMask;
-   private static boolean sodiumVisibilityBridgeFailed;
    private static int diagnosticActiveProfileMask;
 
    private BloomPostProcessor() {
@@ -148,8 +121,6 @@ public final class BloomPostProcessor {
       BloomMaskAtlas.markDirty();
       BloomEntityMaskTextures.markDirty();
       BloomSourceRenderer.reset();
-      radiusProfileScanConfigVersion = Long.MIN_VALUE;
-      radiusProfilesNearbyMask = 0;
    }
 
    public static void shutdown() {
@@ -158,47 +129,32 @@ public final class BloomPostProcessor {
    }
 
    public static void prepareSourceIfEnabled(LevelTerrainRenderContext context) {
-      if (ShineMasterToggle.enabled()) {
-         BloomConfig.Data config = BloomConfig.get();
-         if (config.enabled && !shouldSkipForCompatibility()) {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.level != null) {
-               BloomSourceRenderer.prepareSource(context);
-            }
+      BloomConfig.Data config = BloomConfig.get();
+      if (config.enabled) {
+         Minecraft minecraft = Minecraft.getInstance();
+         if (minecraft.level != null) {
+            BloomSourceRenderer.prepareSource(context);
          }
       }
    }
 
    public static void captureTerrainDepthIfEnabled(LevelTerrainRenderContext context) {
       BloomSourceRenderer.resetTerrainDepthCapture();
-      if (ShineMasterToggle.enabled()) {
-         BloomConfig.Data config = BloomConfig.get();
-         boolean bloomNeedsDepth = config.enabled && !shouldSkipForCompatibility();
-         boolean dustNeedsDepth = DesertDustParticle.needsDepthSoftnessSnapshot();
-         boolean fogFxNeedsDepth = FogFxParticle.needsSkyOpacitySnapshot();
-         ExperimentalConfig experimentalConfig = ExperimentalConfigManager.fastConfig();
-         boolean skyVolumetricNeedsDepth = experimentalConfig != null && SkyLightOcclusionRenderer.isSupported() && experimentalConfig.enabled && experimentalConfig.skyVolumetricRaysEnabled;
-         if (bloomNeedsDepth || dustNeedsDepth || fogFxNeedsDepth || skyVolumetricNeedsDepth) {
-            if (fogFxNeedsDepth) {
-               FogFxParticle.prepareSkyOpacityUniform();
-            }
-
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.level != null) {
-               BloomSourceRenderer.captureTerrainDepth(skyVolumetricNeedsDepth);
-            }
+      BloomConfig.Data config = BloomConfig.get();
+      if (config.enabled) {
+         Minecraft minecraft = Minecraft.getInstance();
+         if (minecraft.level != null) {
+            BloomSourceRenderer.captureTerrainDepth(false);
          }
       }
    }
 
    public static void captureOccluderDepthIfEnabled(LevelRenderContext context) {
-      if (ShineMasterToggle.enabled()) {
-         BloomConfig.Data config = BloomConfig.get();
-         if (config.enabled && !shouldSkipForCompatibility()) {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.level != null) {
-               BloomSourceRenderer.captureOccluderDepth();
-            }
+      BloomConfig.Data config = BloomConfig.get();
+      if (config.enabled) {
+         Minecraft minecraft = Minecraft.getInstance();
+         if (minecraft.level != null) {
+            BloomSourceRenderer.captureOccluderDepth();
          }
       }
    }
@@ -209,57 +165,52 @@ public final class BloomPostProcessor {
 
    public static void renderIfEnabled() {
       diagnosticActiveProfileMask = 0;
-      if (ShineMasterToggle.enabled()) {
-         BloomConfig.Data config = BloomConfig.get();
-         if (config.enabled && !shouldSkipForCompatibility()) {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.level != null && !(config.strength <= 1.0E-4)) {
-               RenderTarget bloomSourceTarget = BloomSourceRenderer.getSourceTarget();
-               if (bloomSourceTarget != null && BloomSourceRenderer.hasPreparedSourceThisFrame()) {
-                  RenderTarget terrainDepthTarget = BloomSourceRenderer.getTerrainDepthTarget();
-                  if (terrainDepthTarget != null && BloomSourceRenderer.hasCapturedTerrainDepthThisFrame()) {
-                     RenderTarget occluderDepthTarget = BloomSourceRenderer.getOccluderDepthTarget();
-                     if (occluderDepthTarget == null || !BloomSourceRenderer.hasCapturedOccluderDepthThisFrame()) {
-                        occluderDepthTarget = terrainDepthTarget;
-                     }
+      BloomConfig.Data config = BloomConfig.get();
+      if (config.enabled) {
+         Minecraft minecraft = Minecraft.getInstance();
+         if (minecraft.level != null && !(config.strength <= 1.0E-4)) {
+            RenderTarget bloomSourceTarget = BloomSourceRenderer.getSourceTarget();
+            if (bloomSourceTarget != null && BloomSourceRenderer.hasPreparedSourceThisFrame()) {
+               RenderTarget terrainDepthTarget = BloomSourceRenderer.getTerrainDepthTarget();
+               if (terrainDepthTarget != null && BloomSourceRenderer.hasCapturedTerrainDepthThisFrame()) {
+                  RenderTarget occluderDepthTarget = BloomSourceRenderer.getOccluderDepthTarget();
+                  if (occluderDepthTarget == null || !BloomSourceRenderer.hasCapturedOccluderDepthThisFrame()) {
+                     occluderDepthTarget = terrainDepthTarget;
+                  }
 
-                     if (!ShineFpsDiagnostics.skipBloomPostForArchitecture()) {
-                        RenderTarget mainTarget = minecraft.gameRenderer.mainRenderTarget();
-                        int activeProfileMask = activeRadiusProfileMask(minecraft, config);
-                        diagnosticActiveProfileMask = activeProfileMask;
-                        int extraBlurPasses = getExtraBlurPasses(config.blurPassCount);
-                        if (canUseCombinedLowResolutionPath(config, activeProfileMask, mainTarget.width, mainTarget.height)) {
-                           int[] activeLevels = activeLevelsForProfiles(config, activeProfileMask);
-                           PostChain combinedChain = ensureCombinedRuntimeChain(mainTarget.width, mainTarget.height, activeProfileMask, activeLevels, extraBlurPasses, config);
-                           if (combinedChain != null) {
-                              for(int profile = 0; profile < 3; ++profile) {
-                                 closeRuntimeChain(profile);
-                              }
-
-                              applyCombinedConfigUniforms(combinedChain, config, activeProfileMask, activeLevels, extraBlurPasses);
-                              processChain(combinedChain, mainTarget, bloomSourceTarget, terrainDepthTarget, occluderDepthTarget);
-                              return;
-                           }
-                        }
-
-                        closeCombinedRuntimeChain();
-
+                  RenderTarget mainTarget = minecraft.gameRenderer.mainRenderTarget();
+                  int activeProfileMask = activeRadiusProfileMask(minecraft, config);
+                  diagnosticActiveProfileMask = activeProfileMask;
+                  int extraBlurPasses = getExtraBlurPasses(config.blurPassCount);
+                  if (canUseCombinedLowResolutionPath(config, activeProfileMask, mainTarget.width, mainTarget.height)) {
+                     int[] activeLevels = activeLevelsForProfiles(config, activeProfileMask);
+                     PostChain combinedChain = ensureCombinedRuntimeChain(mainTarget.width, mainTarget.height, activeProfileMask, activeLevels, extraBlurPasses, config);
+                     if (combinedChain != null) {
                         for(int profile = 0; profile < 3; ++profile) {
-                           if ((activeProfileMask & 1 << profile) == 0) {
-                              closeRuntimeChain(profile);
-                           } else {
-                              double radius = radiusForProfile(config, profile);
-                              int activeLevels = getActiveLevels(radius);
-                              PostChain chain = ensureRuntimeChain(profile, mainTarget.width, mainTarget.height, activeLevels, extraBlurPasses, profile);
-                              if (chain == null) {
-                                 return;
-                              }
-
-                              applyConfigUniforms(profile, chain, config, activeLevels, radius, profile);
-                              processChain(chain, mainTarget, bloomSourceTarget, terrainDepthTarget, occluderDepthTarget);
-                           }
+                           closeRuntimeChain(profile);
                         }
 
+                        applyCombinedConfigUniforms(combinedChain, config, activeProfileMask, activeLevels, extraBlurPasses);
+                        processChain(combinedChain, mainTarget, bloomSourceTarget, terrainDepthTarget, occluderDepthTarget);
+                        return;
+                     }
+                  }
+
+                  closeCombinedRuntimeChain();
+
+                  for(int profile = 0; profile < 3; ++profile) {
+                     if ((activeProfileMask & 1 << profile) == 0) {
+                        closeRuntimeChain(profile);
+                     } else {
+                        double radius = radiusForProfile(config, profile);
+                        int activeLevels = getActiveLevels(radius);
+                        PostChain chain = ensureRuntimeChain(profile, mainTarget.width, mainTarget.height, activeLevels, extraBlurPasses, profile);
+                        if (chain == null) {
+                           return;
+                        }
+
+                        applyConfigUniforms(profile, chain, config, activeLevels, radius, profile);
+                        processChain(chain, mainTarget, bloomSourceTarget, terrainDepthTarget, occluderDepthTarget);
                      }
                   }
                }
@@ -317,91 +268,10 @@ public final class BloomPostProcessor {
    }
 
    private static int activeRadiusProfileMask(Minecraft minecraft, BloomConfig.Data config) {
-      if (config.sourceRadiusProfiles != null && !config.sourceRadiusProfiles.isEmpty() && minecraft.level != null && minecraft.player != null) {
-         ClientLevel level = minecraft.level;
-         long configVersion = BloomConfig.version();
-         long indexGeneration = ClientSectionFeatureIndex.prepareBloomRadiusProfiles(level, config.sourceRadiusProfiles, configVersion);
-         int configuredMask = ClientSectionFeatureIndex.configuredBloomRadiusProfileMask();
-         if (configuredMask == 0) {
-            radiusProfilesNearbyMask = 0;
-            return 1;
-         } else {
-            if (!sodiumVisibilityBridgeFailed && FabricLoader.getInstance().isModLoaded("sodium")) {
-               try {
-                  int visibleMask = BloomSodiumVisibility.visibleRadiusProfileMask(level, configuredMask);
-                  if (visibleMask >= 0) {
-                     radiusProfilesNearbyMask = visibleMask & configuredMask;
-                     return 1 | radiusProfilesNearbyMask;
-                  }
-               } catch (RuntimeException | LinkageError exception) {
-                  sodiumVisibilityBridgeFailed = true;
-                  BloomMod.LOGGER.debug("Shine Bloom could not read Sodium's visible terrain lists; using the loaded-chunk profile fallback.", exception);
-               }
-            }
-
-            int chunkX = minecraft.player.blockPosition().getX() >> 4;
-            int chunkZ = minecraft.player.blockPosition().getZ() >> 4;
-            int bloomChunkRadius = Math.max(1, (int)Math.ceil(config.bloomDistance / (double)16.0F));
-            int chunkRadius = Math.min(bloomChunkRadius, Math.max(1, minecraft.options.getEffectiveRenderDistance()));
-            if (configVersion == radiusProfileScanConfigVersion && chunkX == radiusProfileScanChunkX && chunkZ == radiusProfileScanChunkZ && chunkRadius == radiusProfileScanChunkRadius && indexGeneration == radiusProfileScanIndexGeneration) {
-               return 1 | radiusProfilesNearbyMask;
-            } else {
-               radiusProfileScanConfigVersion = configVersion;
-               radiusProfileScanChunkX = chunkX;
-               radiusProfileScanChunkZ = chunkZ;
-               radiusProfileScanChunkRadius = chunkRadius;
-               radiusProfileScanIndexGeneration = indexGeneration;
-               ClientChunkCache chunks = level.getChunkSource();
-               int foundMask = 0;
-
-               for(int ring = 0; ring <= chunkRadius; ++ring) {
-                  for(int dz = -ring; dz <= ring; ++dz) {
-                     for(int dx = -ring; dx <= ring; ++dx) {
-                        if (Math.max(Math.abs(dx), Math.abs(dz)) == ring) {
-                           LevelChunk chunk = chunks.getChunk(chunkX + dx, chunkZ + dz, ChunkStatus.FULL, false);
-                           if (chunk != null) {
-                              foundMask |= ClientSectionFeatureIndex.chunkBloomRadiusProfileMask(level, chunk);
-                              if ((foundMask & configuredMask) == configuredMask) {
-                                 radiusProfilesNearbyMask = foundMask & configuredMask;
-                                 return 1 | radiusProfilesNearbyMask;
-                              }
-                           }
-                        }
-                     }
-                  }
-               }
-
-               radiusProfilesNearbyMask = foundMask & configuredMask;
-               return 1 | radiusProfilesNearbyMask;
-            }
-         }
+      if (config.sourceRadiusProfiles != null && !config.sourceRadiusProfiles.isEmpty()) {
+         return 7;
       } else {
-         radiusProfilesNearbyMask = 0;
          return 1;
-      }
-   }
-
-   private static boolean shouldSkipForCompatibility() {
-      Optional<String> reason = ShineCompatibilityApi.firstBlockReason(ShineSystem.BLOOM);
-      if (reason.isEmpty()) {
-         if (compatibilityDisabled) {
-            BloomMod.LOGGER.info("Shine bloom re-enabled: compatibility blockers cleared.");
-            compatibilityDisabled = false;
-            compatibilityMessage = null;
-         }
-
-         return false;
-      } else {
-         String message = "Shine bloom disabled: " + (String)reason.get();
-         if (!compatibilityDisabled || !Objects.equals(message, compatibilityMessage)) {
-            BloomMod.LOGGER.info(message);
-            compatibilityDisabled = true;
-            compatibilityMessage = message;
-            closeRuntimeChain();
-            BloomSourceRenderer.reset();
-         }
-
-         return true;
       }
    }
 
@@ -1112,11 +982,6 @@ public final class BloomPostProcessor {
       combinedRuntimeChainUniformsDirty = true;
       lastCombinedExtractUniforms = new float[3][9];
       lastCombinedResolveWeights = new float[3][8];
-      radiusProfileScanConfigVersion = Long.MIN_VALUE;
-      radiusProfileScanChunkX = Integer.MIN_VALUE;
-      radiusProfileScanChunkZ = Integer.MIN_VALUE;
-      radiusProfileScanChunkRadius = Integer.MIN_VALUE;
-      radiusProfileScanIndexGeneration = Long.MIN_VALUE;
    }
 
    private static final class BloomTargetBundle implements PostChain.TargetBundle {

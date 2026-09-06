@@ -1,12 +1,6 @@
 package com.bloom.client.selection;
 
-import com.bloom.api.v2.ShineFeatures;
-import com.bloom.client.compat.ShineContentContexts;
-import com.bloom.client.compat.ShineInteropManager;
 import com.bloom.client.config.BloomConfig;
-import com.bloom.client.experimental.config.ExperimentalConfig;
-import com.bloom.client.experimental.config.ExperimentalConfigManager;
-import com.bloom.client.resource.ShineResourceDefaults;
 import com.google.common.collect.UnmodifiableIterator;
 import java.util.Objects;
 import java.util.Set;
@@ -23,7 +17,6 @@ import net.minecraft.world.level.material.FluidState;
 
 public final class BloomSelection {
    private static final Set<Identifier> SELECTED_FLUID_IDS = Set.of(Identifier.parse("minecraft:lava"), Identifier.parse("minecraft:flowing_lava"), Identifier.parse("minecraft:water"), Identifier.parse("minecraft:flowing_water"));
-   private static final Set<String> LANTERN_TORCH_GLOW_PARTICLE_IDS = Set.of("shine:lantern_mote", "shine:soul_lantern_mote", "shine:copper_lantern_mote", "shine:torch_spark", "shine:soul_torch_spark", "shine:copper_torch_spark");
    private static final ConcurrentMap<Block, Identifier> BLOCK_ID_CACHE = new ConcurrentHashMap();
    private static final ConcurrentMap<Fluid, Identifier> FLUID_ID_CACHE = new ConcurrentHashMap();
    private static final ConcurrentMap<Block, Boolean> LIGHT_SOURCE_LOOK_CACHE = new ConcurrentHashMap();
@@ -62,7 +55,7 @@ public final class BloomSelection {
          }
       }
 
-      return ShineInteropManager.bloomSourceStrength(strength, ShineContentContexts.block(blockState));
+      return strength;
    }
 
    public static double getFluidSourceStrength(FluidState fluidState) {
@@ -79,19 +72,19 @@ public final class BloomSelection {
       Identifier fluidId = fluidId(fluidState.getType());
       Double override = sourceOverride(config, fluidId.toString());
       if (override != null) {
-         return ShineInteropManager.bloomSourceStrength(clampSourceStrength(override), ShineContentContexts.fluid(fluidState));
+         return clampSourceStrength(override);
       } else {
          Block legacyFluidBlock = fluidState.createLegacyBlock().getBlock();
          Identifier legacyBlockId = BuiltInRegistries.BLOCK.getKey(legacyFluidBlock);
          if (legacyBlockId != null) {
             Double legacyOverride = sourceOverride(config, legacyBlockId.toString());
             if (legacyOverride != null) {
-               return ShineInteropManager.bloomSourceStrength(clampSourceStrength(legacyOverride), ShineContentContexts.fluid(fluidState));
+               return clampSourceStrength(legacyOverride);
             }
          }
 
          double fallback = SELECTED_FLUID_IDS.contains(fluidId) ? config.defaultLightSourceStrength : config.defaultNonLightStrength;
-         return ShineInteropManager.bloomSourceStrength(clampSourceStrength(fallback), ShineContentContexts.fluid(fluidState));
+         return clampSourceStrength(fallback);
       }
    }
 
@@ -106,56 +99,36 @@ public final class BloomSelection {
 
    public static double getParticleSourceStrength(String particleId) {
       if (particleId != null && !particleId.isBlank()) {
-         if (LANTERN_TORCH_GLOW_PARTICLE_IDS.contains(particleId)) {
-            ExperimentalConfig experimental = ExperimentalConfigManager.fastConfig();
-            return experimental != null && experimental.enabled && experimental.lanternTorchParticlesEnabled ? ShineInteropManager.bloomSourceStrength(clampSourceStrength(experimental.lanternTorchParticleBloomStrength), ShineContentContexts.particle(particleId)) : (double)0.0F;
-         } else {
-            refreshCachesIfNeeded();
-            return (Double)PARTICLE_STRENGTH_CACHE.computeIfAbsent(particleId, BloomSelection::computeParticleSourceStrength);
-         }
+         refreshCachesIfNeeded();
+         return (Double)PARTICLE_STRENGTH_CACHE.computeIfAbsent(particleId, BloomSelection::computeParticleSourceStrength);
       } else {
          return (double)0.0F;
       }
    }
 
    public static boolean hasEnabledParticleSources() {
-      if (!ShineInteropManager.isFeatureAllowed(ShineFeatures.BLOOM)) {
-         return false;
+      refreshCachesIfNeeded();
+      long version = BloomConfig.version();
+      if (cachedParticleEnabledVersion == version) {
+         return cachedParticleEnabled;
       } else {
-         ExperimentalConfig experimental = ExperimentalConfigManager.fastConfig();
-         if (experimental != null && experimental.enabled && experimental.lanternTorchParticlesEnabled && clampSourceStrength(experimental.lanternTorchParticleBloomStrength) > 1.0E-5) {
+         BloomConfig.Data config = BloomConfig.get();
+         if (clampSourceStrength(config.defaultParticleStrength) > 1.0E-5) {
+            cachedParticleEnabled = true;
+            cachedParticleEnabledVersion = version;
             return true;
          } else {
-            refreshCachesIfNeeded();
-            long version = BloomConfig.version() * 31L + ShineInteropManager.ruleVersion();
-            if (cachedParticleEnabledVersion == version) {
-               return cachedParticleEnabled;
-            } else {
-               BloomConfig.Data config = BloomConfig.get();
-               if (clampSourceStrength(config.defaultParticleStrength) > 1.0E-5) {
+            for(Double value : config.particleStrengthOverrides.values()) {
+               if (value != null && clampSourceStrength(value) > 1.0E-5) {
                   cachedParticleEnabled = true;
                   cachedParticleEnabledVersion = version;
                   return true;
-               } else {
-                  for(Double value : config.particleStrengthOverrides.values()) {
-                     if (value != null && clampSourceStrength(value) > 1.0E-5) {
-                        cachedParticleEnabled = true;
-                        cachedParticleEnabledVersion = version;
-                        return true;
-                     }
-                  }
-
-                  if (ShineInteropManager.hasBloomParticleSourceContribution()) {
-                     cachedParticleEnabled = true;
-                     cachedParticleEnabledVersion = version;
-                     return true;
-                  } else {
-                     cachedParticleEnabled = false;
-                     cachedParticleEnabledVersion = version;
-                     return false;
-                  }
                }
             }
+
+            cachedParticleEnabled = false;
+            cachedParticleEnabledVersion = version;
+            return false;
          }
       }
    }
@@ -163,13 +136,13 @@ public final class BloomSelection {
    private static double computeEntityTextureSourceStrength(String textureId) {
       BloomConfig.Data config = BloomConfig.get();
       Double override = (Double)config.entityTextureStrengthOverrides.get(textureId);
-      return ShineInteropManager.bloomSourceStrength(clampSourceStrength(override == null ? config.defaultEntityTextureStrength : override), ShineContentContexts.texture(textureId));
+      return clampSourceStrength(override == null ? config.defaultEntityTextureStrength : override);
    }
 
    private static double computeParticleSourceStrength(String particleId) {
       BloomConfig.Data config = BloomConfig.get();
       Double override = (Double)config.particleStrengthOverrides.get(particleId);
-      return ShineInteropManager.bloomSourceStrength(clampSourceStrength(override == null ? config.defaultParticleStrength : override), ShineContentContexts.particle(particleId));
+      return clampSourceStrength(override == null ? config.defaultParticleStrength : override);
    }
 
    private static double clampSourceStrength(double value) {
@@ -197,8 +170,7 @@ public final class BloomSelection {
    }
 
    private static Double sourceOverride(BloomConfig.Data config, String id) {
-      Double userOverride = (Double)config.sourceStrengthOverrides.get(id);
-      return userOverride == null ? ShineResourceDefaults.bloomSourceStrength(id) : userOverride;
+      return (Double)config.sourceStrengthOverrides.get(id);
    }
 
    private static boolean blockLooksLikeLightSource(Block block, BlockState state) {
@@ -308,7 +280,7 @@ public final class BloomSelection {
    }
 
    private static void refreshCachesIfNeeded() {
-      long version = BloomConfig.version() * 31L + ShineInteropManager.ruleVersion();
+      long version = BloomConfig.version();
       if (cachedConfigVersion != version) {
          synchronized(BloomSelection.class) {
             if (cachedConfigVersion != version) {

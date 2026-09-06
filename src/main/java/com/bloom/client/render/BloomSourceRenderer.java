@@ -1,9 +1,6 @@
 package com.bloom.client.render;
 
 import com.bloom.BloomMod;
-import com.bloom.api.v2.ShineInteropApi;
-import com.bloom.api.v2.ShineRenderChannel;
-import com.bloom.client.diagnostics.ShineFpsDiagnostics;
 import com.bloom.client.selection.BloomSelection;
 import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.IndexType;
@@ -237,8 +234,6 @@ public final class BloomSourceRenderer {
          GpuTexture mainDepth = mainTarget.getDepthTexture();
          if (mainDepth != null && mainDepth.getFormat().hasDepthAspect()) {
             if (ensureTerrainDepthSnapshot(mainTarget.width, mainTarget.height, mainDepth.getFormat())) {
-               ShineFpsDiagnostics.GpuToken depthGpu = ShineFpsDiagnostics.beginBloomArchitectureGpu("First depth copy");
-
                label137: {
                   try {
                      RenderSystem.getDevice().createCommandEncoder().copyTextureToTexture(mainDepth, terrainDepthTexture, 0, 0, 0, 0, 0, mainTarget.width, mainTarget.height);
@@ -248,8 +243,6 @@ public final class BloomSourceRenderer {
                         BloomMod.LOGGER.warn("Shine could not snapshot terrain depth for bloom/entity occlusion.", e);
                         loggedTerrainDepthFailure = true;
                      }
-                  } finally {
-                     ShineFpsDiagnostics.endGpu(depthGpu);
                   }
 
                   return;
@@ -677,7 +670,7 @@ public final class BloomSourceRenderer {
    }
 
    private static boolean shine$isBloomSourceAllowed() {
-      return ShineInteropApi.isRenderChannelAllowed(ShineRenderChannel.BLOOM_SOURCE);
+      return true;
    }
 
    public static void disableBloomDrawBuffers(RenderTarget target) {

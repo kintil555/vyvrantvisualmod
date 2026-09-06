@@ -1,7 +1,6 @@
 package com.bloom.client.render;
 
 import com.bloom.BloomMod;
-import com.bloom.client.diagnostics.ShineFpsDiagnostics;
 import com.bloom.mixin.client.accessor.PostChainAccessor;
 import com.bloom.mixin.client.accessor.PostPassAccessor;
 import com.mojang.blaze3d.GpuFormat;
@@ -98,7 +97,7 @@ final class BloomDirectPostExecutor implements AutoCloseable {
    }
 
    static boolean tryExecute(PostChain chain, RenderTarget mainTarget, RenderTarget sourceTarget, RenderTarget terrainDepthTarget, RenderTarget occluderDepthTarget, Projection projection, ProjectionMatrixBuffer projectionBuffer) {
-      if (ENABLE_DIRECT_POST && !disabledAfterFailure && chain != null && !ShineFpsDiagnostics.useLegacyBloomPostForArchitecture()) {
+      if (ENABLE_DIRECT_POST && !disabledAfterFailure && chain != null) {
          BloomDirectPostExecutor executor = (BloomDirectPostExecutor)EXECUTORS.get(chain);
          if (executor != null && (executor.mainWidth != mainTarget.width || executor.mainHeight != mainTarget.height)) {
             EXECUTORS.remove(chain);
@@ -161,7 +160,6 @@ final class BloomDirectPostExecutor implements AutoCloseable {
       this.updateExternalTargets(mainTarget, sourceTarget, terrainDepthTarget, occluderDepthTarget);
       GpuBufferSlice projectionSlice = projectionBuffer.getBuffer(projection);
       CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-      long directCpu = ShineFpsDiagnostics.beginCpu("Bloom direct post CPU");
       RenderSystem.backupProjectionMatrix();
 
       try {
@@ -183,7 +181,6 @@ final class BloomDirectPostExecutor implements AutoCloseable {
          }
       } finally {
          RenderSystem.restoreProjectionMatrix();
-         ShineFpsDiagnostics.endCpu("Bloom direct post CPU", directCpu);
       }
 
    }
@@ -299,8 +296,6 @@ final class BloomDirectPostExecutor implements AutoCloseable {
          if (color == null) {
             throw new IllegalStateException("Bloom output has no color attachment: " + String.valueOf(this.outputTargetId));
          } else {
-            ShineFpsDiagnostics.GpuToken gpu = ShineFpsDiagnostics.beginGpu(this.diagnosticName);
-
             try {
                RenderPass renderPass = output.useDepth && output.getDepthTextureView() != null ? encoder.createRenderPass(this.debugName, color, Optional.empty(), output.getDepthTextureView(), OptionalDouble.empty()) : encoder.createRenderPass(this.debugName, color, Optional.empty());
 
@@ -337,7 +332,6 @@ final class BloomDirectPostExecutor implements AutoCloseable {
                   renderPass.close();
                }
             } finally {
-               ShineFpsDiagnostics.endGpu(gpu);
             }
 
          }

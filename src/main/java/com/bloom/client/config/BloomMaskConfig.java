@@ -53,7 +53,6 @@ public final class BloomMaskConfig {
    public static void save() {
       try {
          ShineAtomicFiles.writeUtf8(maskConfigPath(), (writer) -> GSON.toJson(data, writer));
-         ShinePresetStateManager.captureLocalOverridesAfterUserSave();
       } catch (IOException e) {
          BloomMod.LOGGER.error("Failed to write Shine mask config.", e);
       }
@@ -562,18 +561,6 @@ public final class BloomMaskConfig {
    }
 
    private static Data loadBundledDefaults() {
-      JsonObject canonical = ShineDefaultBaseline.section("bloomMasks");
-      if (canonical != null) {
-         try {
-            Data loaded = (Data)GSON.fromJson(canonical, Data.class);
-            if (loaded != null) {
-               return sanitize(loaded);
-            }
-         } catch (Exception exception) {
-            BloomMod.LOGGER.error("Failed to read bloom-mask defaults from the canonical Shine Default baseline.", exception);
-         }
-      }
-
       try {
          InputStream stream = BloomMaskConfig.class.getResourceAsStream("/assets/shine/defaults/shine_masks.json");
 

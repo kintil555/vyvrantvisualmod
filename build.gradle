@@ -35,9 +35,8 @@ dependencies {
 	// Mod Menu integration (BloomModMenuIntegration.java depends on this)
 	implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
-	// Sodium internals are referenced by SodiumVulkanTerrainUniforms (Vulkan terrain pass hook).
-	// compileOnly + not bundled: Sodium is an optional runtime dependency, guarded at runtime
-	// by ShineRenderBackend.isVulkan() / Sodium-presence checks.
+	// Sodium internals are referenced by the bloom Sodium-visibility bridge.
+	// compileOnly + not bundled: Sodium is an optional runtime dependency.
 	compileOnly "maven.modrinth:AANobbMI:${project.sodium_version}"
 }
 

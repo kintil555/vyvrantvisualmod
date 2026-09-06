@@ -1,6 +1,5 @@
 package com.bloom.client.render;
 
-import com.bloom.client.diagnostics.ShineFpsDiagnostics;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -66,7 +65,6 @@ public final class TransientMeshArena {
                encoder.writeToBuffer(buffer.slice(0L, (long)byteCount), uploadView);
                ++frameUploads;
                frameUploadBytes += (long)byteCount;
-               ShineFpsDiagnostics.recordTransientMeshUpload(key, (long)byteCount);
                return buffer;
             }
          }
