@@ -1,6 +1,6 @@
 plugins {
-	id 'fabric-loom' version '1.17-SNAPSHOT'
-	id 'maven-publish'
+	id "net.fabricmc.fabric-loom" version "1.17-SNAPSHOT"
+	id "maven-publish"
 }
 
 version = project.mod_version
@@ -25,24 +25,20 @@ repositories {
 	}
 }
 
-loom {
-	// Minecraft 26.2 is distributed unobfuscated; accept Mojang's mapping license.
-	silentMojangMappingsLicense()
-}
-
 dependencies {
+	// Minecraft 26.2 ships unobfuscated (Mojang's own names) - no mappings dependency,
+	// and no remapping step, so all mod dependencies below use plain (not "mod"-prefixed) configurations.
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
 	// Mod Menu integration (BloomModMenuIntegration.java depends on this)
-	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+	implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
 	// Sodium internals are referenced by SodiumVulkanTerrainUniforms (Vulkan terrain pass hook).
 	// compileOnly + not bundled: Sodium is an optional runtime dependency, guarded at runtime
 	// by ShineRenderBackend.isVulkan() / Sodium-presence checks.
-	modCompileOnly "maven.modrinth:AANobbMI:${project.sodium_version}"
+	compileOnly "maven.modrinth:AANobbMI:${project.sodium_version}"
 }
 
 java {
