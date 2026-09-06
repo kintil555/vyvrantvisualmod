@@ -3,7 +3,6 @@ package com.bloom.client.config;
 import com.bloom.BloomMod;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -437,7 +436,8 @@ public final class BloomMaskConfig {
             return null;
          } else {
             InferredSource var10000;
-            switch (path.substring("block/".length())) {
+            String blockPath = path.substring("block/".length());
+            switch (blockPath) {
                case "water_still" -> var10000 = new InferredSource(namespace + ":water", true, true, false);
                case "water_flow" -> var10000 = new InferredSource(namespace + ":flowing_water", true, false, true);
                case "lava_still" -> var10000 = new InferredSource(namespace + ":lava", true, true, false);
@@ -655,7 +655,8 @@ public final class BloomMaskConfig {
             String namespace = spriteId.substring(0, sep);
             String path = spriteId.substring(sep + 1);
             String var10000;
-            switch (path.startsWith("block/") ? path.substring("block/".length()) : path) {
+            String unprefixed = path.startsWith("block/") ? path.substring("block/".length()) : path;
+            switch (unprefixed) {
                case "wall_torch":
                   var10000 = "torch";
                   break;
@@ -702,11 +703,11 @@ public final class BloomMaskConfig {
 
             int underscore = unprefixed.lastIndexOf(95);
             if (underscore > 0 && underscore < unprefixed.length() - 1) {
-               numericSuffix = (boolean)1;
+               boolean numericSuffix = true;
 
                for(int i = underscore + 1; i < unprefixed.length(); ++i) {
                   if (!Character.isDigit(unprefixed.charAt(i))) {
-                     numericSuffix = (boolean)0;
+                     numericSuffix = false;
                      break;
                   }
                }

@@ -87,7 +87,7 @@ public final class BloomEntityMaskTextures {
       } else {
          if (minecraft.getResourceManager() != null) {
             try {
-               Resource resource = (Resource)minecraft.getResourceManager().getResource(textureId).orElse((Object)null);
+               Resource resource = minecraft.getResourceManager().getResource(textureId).orElse(null);
                if (resource != null) {
                   label75: {
                      InputStream stream = resource.open();
