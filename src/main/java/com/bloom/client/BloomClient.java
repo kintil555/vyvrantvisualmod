@@ -85,7 +85,7 @@ public class BloomClient implements ClientModInitializer {
     * Opens the shore foam config screen, editing a copy of the current settings.
     */
    public static void openShoreFoamScreen(Screen parent) {
-      Minecraft.getInstance().setScreen(ExperimentalShoreFoamConfigScreen.create(parent, ShoreFoamConfigManager.get().copy(), ShoreFoamConfigManager.defaults()));
+      Minecraft.getInstance().gui.setScreen(ExperimentalShoreFoamConfigScreen.create(parent, ShoreFoamConfigManager.get().copy(), ShoreFoamConfigManager.defaults()));
    }
 
    static {

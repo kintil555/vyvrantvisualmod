@@ -33,7 +33,7 @@ public final class VybrantVisualConfigScreen extends Screen {
       int y = (this.height - totalHeight) / 2;
 
       this.addRenderableWidget(Button.builder(Component.literal("Bloom"), (button) ->
-         Minecraft.getInstance().setScreen(BloomConfigScreen.create(this))
+         Minecraft.getInstance().gui.setScreen(BloomConfigScreen.create(this))
       ).bounds(x, y, buttonWidth, buttonHeight).build());
 
       this.addRenderableWidget(Button.builder(Component.literal("Water Foam"), (button) ->
@@ -45,6 +45,6 @@ public final class VybrantVisualConfigScreen extends Screen {
    }
 
    public void onClose() {
-      Minecraft.getInstance().setScreen(this.parent);
+      Minecraft.getInstance().gui.setScreen(this.parent);
    }
 }

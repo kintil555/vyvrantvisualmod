@@ -84,7 +84,7 @@ public final class ExperimentalBiomeBulkApplyScreen extends FixedScaleScreen {
          if (this.onApply != null) {
             this.onApply.accept(new LinkedHashSet<>(this.selected));
          }
-         Minecraft.getInstance().setScreen(this.parent);
+         Minecraft.getInstance().gui.setScreen(this.parent);
       }).bounds(x, this.height - 28, panelWidth / 2 - 4, 20).build();
       this.addRenderableWidget(this.applyButton);
 
@@ -125,6 +125,6 @@ public final class ExperimentalBiomeBulkApplyScreen extends FixedScaleScreen {
    }
 
    public void onClose() {
-      Minecraft.getInstance().setScreen(this.parent);
+      Minecraft.getInstance().gui.setScreen(this.parent);
    }
 }
