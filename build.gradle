@@ -1,0 +1,54 @@
+plugins {
+	id 'fabric-loom' version '1.17-SNAPSHOT'
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	maven { url "https://maven.terraformersmc.com/releases/" } // Mod Menu
+}
+
+loom {
+	// Minecraft 26.2 is distributed unobfuscated; accept Mojang's mapping license.
+	silentMojangMappingsLicense()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	// Mod Menu integration (BloomModMenuIntegration.java depends on this)
+	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+}
+
+java {
+	// Minecraft 26.2 compiles against Java 25.
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+	withSourcesJar()
+}
+
+processResources {
+	inputs.property "version", project.version
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.release = 25
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.archivesBaseName}" }
+	}
+}

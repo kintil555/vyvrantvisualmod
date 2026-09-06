@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "vybrantvisual",
+  "version": "${version}",
+  "name": "Vybrant Visual",
+  "description": "Client-side bloom lighting and shoreline water foam rendering.",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "com.bloom.BloomMod"
+    ],
+    "client": [
+      "com.bloom.client.BloomClient"
+    ],
+    "modmenu": [
+      "com.bloom.client.config.BloomModMenuIntegration"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "minecraft": "~26.2",
+    "java": ">=25"
+  },
+  "suggests": {
+    "modmenu": "*"
+  },
+  "mixins": [
+    "vybrantvisual.mixins.json"
+  ]
+}
