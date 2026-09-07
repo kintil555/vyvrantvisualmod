@@ -13,12 +13,30 @@ import net.fabricmc.loader.api.FabricLoader;
 public final class ShoreFoamConfigManager {
    private static final Gson GSON = (new GsonBuilder()).setPrettyPrinting().create();
    private static ShoreFoamConfig data = new ShoreFoamConfig();
+   private static volatile long version = 0L;
 
    private ShoreFoamConfigManager() {
    }
 
    public static ShoreFoamConfig get() {
       return data;
+   }
+
+   /**
+    * Alias of {@link #get()} for callers on the render thread that want the
+    * currently active config without allocating.
+    */
+   public static ShoreFoamConfig fastConfig() {
+      return data;
+   }
+
+   /**
+    * Monotonically increasing counter bumped whenever the config is loaded or
+    * saved, so renderers can cheaply detect changes and skip redundant GPU
+    * uploads.
+    */
+   public static long version() {
+      return version;
    }
 
    public static ShoreFoamConfig defaults() {
@@ -39,6 +57,7 @@ public final class ShoreFoamConfigManager {
             data = new ShoreFoamConfig();
          }
       }
+      version++;
    }
 
    public static void save() {
@@ -47,6 +66,7 @@ public final class ShoreFoamConfigManager {
       } catch (IOException e) {
          BloomMod.LOGGER.error("Failed to write shore foam config.", e);
       }
+      version++;
    }
 
    private static Path configPath() {

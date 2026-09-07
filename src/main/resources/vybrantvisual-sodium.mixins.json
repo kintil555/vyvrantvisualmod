@@ -7,9 +7,7 @@
   "client": [
     "SodiumDefaultFluidRendererMixin",
     "SodiumShaderChunkRendererMixin",
-    "SodiumPipelineDrawBuffersMixin",
-    "SodiumTerrainRenderPassMixin",
-    "SodiumUniformBufferManagerAccessor"
+    "SodiumPipelineDrawBuffersMixin"
   ],
   "injectors": {
     "defaultRequire": 0

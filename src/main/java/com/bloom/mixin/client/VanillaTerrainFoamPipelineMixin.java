@@ -4,6 +4,7 @@ import com.bloom.client.experimental.render.TerrainCausticsRenderer;
 import com.bloom.mixin.client.accessor.GlRenderPassAccessor;
 import com.mojang.blaze3d.opengl.GlRenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.systems.RenderPass;
 import java.util.Collection;
 import net.minecraft.client.renderer.RenderPipelines;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,6 +29,7 @@ public abstract class VanillaTerrainFoamPipelineMixin {
       GlRenderPipeline compiledPipeline = ((GlRenderPassAccessor)renderPass).shine$getPipeline();
       if (compiledPipeline != null && bloom$isVanillaTerrainPipeline(compiledPipeline.info())) {
          TerrainCausticsRenderer.uploadVanillaTerrainUniforms(compiledPipeline.program().getProgramId());
+         TerrainCausticsRenderer.bindVanillaTerrainSampler((RenderPass) renderPass);
       }
    }
 
