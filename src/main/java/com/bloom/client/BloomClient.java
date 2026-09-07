@@ -18,6 +18,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.KeyMapping;
@@ -46,6 +47,11 @@ public class BloomClient implements ClientModInitializer {
       BloomConfig.load();
       BloomMaskConfig.load();
       ShoreFoamConfigManager.load();
+
+      LevelRenderEvents.START_MAIN.register((context) -> BloomPostProcessor.prepareSourceIfEnabled(context));
+      LevelRenderEvents.AFTER_OPAQUE_TERRAIN.register((context) -> BloomPostProcessor.captureTerrainDepthIfEnabled(context));
+      LevelRenderEvents.BEFORE_TRANSLUCENT_TERRAIN.register((context) -> BloomPostProcessor.captureOccluderDepthIfEnabled(context));
+      LevelRenderEvents.END_MAIN.register((context) -> BloomPostProcessor.renderIfEnabled(context));
 
       ClientLifecycleEvents.CLIENT_STOPPING.register((ClientLifecycleEvents.ClientStopping)(client) -> {
          BloomPostProcessor.shutdown();

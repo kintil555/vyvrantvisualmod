@@ -38,6 +38,12 @@ dependencies {
 	// Sodium internals are referenced by the bloom Sodium-visibility bridge.
 	// compileOnly + not bundled: Sodium is an optional runtime dependency.
 	compileOnly "maven.modrinth:AANobbMI:${project.sodium_version}"
+
+	// MixinExtras: WrapOperation/WrapMethod injectors used by SectionCompilerMixin.
+	// Bundled via include() since this isn't guaranteed to be provided by the
+	// Fabric Loader version end users run.
+	include implementation("io.github.llamalad7:mixinextras-fabric:0.5.4")
+	annotationProcessor "io.github.llamalad7:mixinextras-fabric:0.5.4"
 }
 
 java {

@@ -30,6 +30,7 @@
     "sodium": "*"
   },
   "mixins": [
-    "vybrantvisual.mixins.json"
+    "vybrantvisual.mixins.json",
+    "vybrantvisual-sodium.mixins.json"
   ]
 }

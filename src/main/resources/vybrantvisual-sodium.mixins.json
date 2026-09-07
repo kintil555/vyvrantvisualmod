@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.bloom.mixin.client.sodium",
+  "compatibilityLevel": "JAVA_25",
+  "plugin": "com.bloom.mixin.client.sodium.SodiumMixinPlugin",
+  "client": [
+    "SodiumDefaultFluidRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
