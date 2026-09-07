@@ -5,7 +5,11 @@
   "compatibilityLevel": "JAVA_25",
   "plugin": "com.bloom.mixin.client.sodium.SodiumMixinPlugin",
   "client": [
-    "SodiumDefaultFluidRendererMixin"
+    "SodiumDefaultFluidRendererMixin",
+    "SodiumShaderChunkRendererMixin",
+    "SodiumPipelineDrawBuffersMixin",
+    "SodiumTerrainRenderPassMixin",
+    "SodiumUniformBufferManagerAccessor"
   ],
   "injectors": {
     "defaultRequire": 0

@@ -7,10 +7,12 @@
     "client.FixedScaleScreenRenderMixin",
     "client.LiquidBlockRendererMixin",
     "client.SectionCompilerMixin",
+    "client.VanillaTerrainFoamPipelineMixin",
     "client.accessor.PostChainAccessor",
     "client.accessor.PostPassAccessor",
     "client.accessor.GameRendererAccessor",
-    "client.accessor.TextureAtlasAccessor"
+    "client.accessor.TextureAtlasAccessor",
+    "client.accessor.GlRenderPassAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
