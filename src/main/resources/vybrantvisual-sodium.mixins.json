@@ -8,7 +8,8 @@
     "SodiumDefaultFluidRendererMixin",
     "SodiumShaderChunkRendererMixin",
     "SodiumPipelineDrawBuffersMixin",
-    "SodiumDefaultChunkRendererMixin"
+    "SodiumDefaultChunkRendererMixin",
+    "SodiumShaderSourceMixin"
   ],
   "injectors": {
     "defaultRequire": 0
