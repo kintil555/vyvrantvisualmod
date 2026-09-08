@@ -55,8 +55,22 @@ public abstract class SodiumShaderChunkRendererMixin {
       require = 1
    )
    private static BindGroupLayout shine$addMaskSampler(BindGroupLayout.Builder builder, Operation<BindGroupLayout> original) {
+      // The Sodium terrain fragment shader is patched at load time by
+      // SodiumShaderSourceTransformer, which always declares this fixed set
+      // of sampler2D uniforms (see shine$injectBloomOutput). The bind group
+      // layout must register every one of them or GL rejects the program
+      // with "program texture usage" even though only the mask and shore
+      // foam samplers are backed by real features in this build; the rest
+      // are bound to a harmless placeholder in SodiumDefaultChunkRendererMixin.
       builder.withSampler("u_ShineMaskTex");
+      builder.withSampler("u_ShineCausticsTex");
+      builder.withSampler("u_ShineCloudTex");
+      builder.withSampler("u_ShineFoliageWindMaskTex");
+      builder.withSampler("u_ShineGrassBladeInteractionTex");
       builder.withSampler("u_ShineWaterEdgeFoamTex");
+      builder.withSampler("u_ShineWaterOpaqueDepthTex");
+      builder.withSampler("u_ShineWaterReflectionTex");
+      builder.withSampler("u_ShineWaterWakeTex");
       if (!shine$loggedSamplerLayout) {
          BloomMod.LOGGER.debug("Shine added Sodium terrain mask sampler to the bind group layout.");
          shine$loggedSamplerLayout = true;

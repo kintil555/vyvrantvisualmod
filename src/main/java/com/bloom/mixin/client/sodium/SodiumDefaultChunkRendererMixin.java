@@ -97,5 +97,27 @@ public abstract class SodiumDefaultChunkRendererMixin {
          // slot the pipeline declared is never left unbound.
          renderPass.bindTexture("u_ShineWaterEdgeFoamTex", textureView, sampler);
       }
+
+      // The remaining samplers the patched shader declares belong to
+      // features not implemented in this build (terrain caustics, clouds,
+      // foliage wind, grass-blade interaction, water opaque depth/
+      // reflection/wake). Their corresponding *Enabled uniforms all default
+      // to 0, so the samples are never used - but GL still requires every
+      // declared sampler to be bound to something, or program validation
+      // fails with "program texture usage".
+      for (String deferredSampler : DEFERRED_SAMPLERS) {
+         renderPass.bindTexture(deferredSampler, textureView, sampler);
+      }
    }
+
+   @Unique
+   private static final String[] DEFERRED_SAMPLERS = {
+      "u_ShineCausticsTex",
+      "u_ShineCloudTex",
+      "u_ShineFoliageWindMaskTex",
+      "u_ShineGrassBladeInteractionTex",
+      "u_ShineWaterOpaqueDepthTex",
+      "u_ShineWaterReflectionTex",
+      "u_ShineWaterWakeTex"
+   };
 }
