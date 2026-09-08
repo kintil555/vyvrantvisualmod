@@ -47,6 +47,8 @@ public final class TerrainCausticsRenderer {
    private static long uploadedShoreFoamMappingVersion = Long.MIN_VALUE;
    private static boolean loggedEdgeFoamTextureLoaded;
    private static boolean loggedEdgeFoamTextureFallback;
+   private static boolean loggedShoreFoamDiagnostics;
+   private static boolean loggedSamplerBindDiagnostics;
 
    private TerrainCausticsRenderer() {
    }
@@ -112,6 +114,10 @@ public final class TerrainCausticsRenderer {
          UniformLocations uniforms = UNIFORM_LOCATIONS.computeIfAbsent(programId, UniformLocations::new);
          ShoreFoamConfig.BiomeProfile shoreFoam = resolveShoreFoamProfile(config);
          boolean shoreFoamEnabled = config.enabled && shoreFoam.enabled && shoreFoam.opacity > 1.0E-5 && shoreFoam.thickness > 1.0E-5;
+         if (!loggedShoreFoamDiagnostics) {
+            BloomMod.LOGGER.info("Shine shore foam diagnostics: configEnabled={} profileEnabled={} opacity={} thickness={} uniformLoc(enabled={}, opacity={}, thickness={}).", config.enabled, shoreFoam.enabled, shoreFoam.opacity, shoreFoam.thickness, uniforms.shoreFoamEnabled, uniforms.shoreFoamOpacity, uniforms.shoreFoamThickness);
+            loggedShoreFoamDiagnostics = true;
+         }
 
          if (uniforms.shoreFoamEnabled >= 0) {
             GL20.glUniform1i(uniforms.shoreFoamEnabled, shoreFoamEnabled ? 1 : 0);
@@ -166,8 +172,13 @@ public final class TerrainCausticsRenderer {
    private static void bindSodiumEdgeFoamSampler(int programId) {
       if (ShineRenderBackend.canUseRawOpenGl()) {
          int samplerUniform = GL20.glGetUniformLocation(programId, EDGE_FOAM_SODIUM_SAMPLER);
+         int textureId = getEdgeFoamTextureId();
+         if (!loggedSamplerBindDiagnostics) {
+            BloomMod.LOGGER.info("Shine shore foam sampler diagnostics: programId={} samplerUniformLoc={} textureId={}.", programId, samplerUniform, textureId);
+            loggedSamplerBindDiagnostics = true;
+         }
+
          if (samplerUniform >= 0) {
-            int textureId = getEdgeFoamTextureId();
             if (textureId > 0) {
                int previousActiveTexture = GL11.glGetInteger(34016);
                GL13.glActiveTexture(EDGE_FOAM_SODIUM_TEXTURE_UNIT);

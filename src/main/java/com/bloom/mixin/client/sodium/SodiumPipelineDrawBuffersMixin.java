@@ -30,6 +30,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class SodiumPipelineDrawBuffersMixin {
    @Unique
    private static boolean shine$loggedSodiumProgramOutputs;
+   @Unique
+   private static boolean shine$loggedMixinFired;
+   @Unique
+   private static boolean shine$loggedPipelineCheck;
 
    @Inject(
       method = {"trySetup"},
@@ -41,14 +45,28 @@ public abstract class SodiumPipelineDrawBuffersMixin {
       require = 0
    )
    private void shine$setupSodiumTerrainOutputs(@Coerce Object renderPass, Collection<String> dynamicUniforms, CallbackInfoReturnable<Boolean> cir) {
+      if (!shine$loggedMixinFired) {
+         BloomMod.LOGGER.info("Shine SodiumPipelineDrawBuffersMixin.shine$setupSodiumTerrainOutputs fired. canUseRawOpenGl={}.", ShineRenderBackend.canUseRawOpenGl());
+         shine$loggedMixinFired = true;
+      }
+
       if (ShineRenderBackend.canUseRawOpenGl()) {
          GlRenderPipeline compiledPipeline = ((GlRenderPassAccessor) renderPass).shine$getPipeline();
-         if (compiledPipeline != null && shine$isSodiumTerrainPipeline(compiledPipeline.info())) {
-            int programId = compiledPipeline.program().getProgramId();
-            TerrainCausticsRenderer.uploadSodiumTerrainUniforms(programId);
-            shine$setInt(programId, "u_ShineBloomOutputEnabled", BloomSourceRenderer.hasPreparedSourceThisFrame() ? 1 : 0);
-            shine$setInt(programId, "u_ShineUseMasks", BloomMaskConfig.hasCustomMasks() ? 1 : 0);
-            shine$logProgramOutputs(programId);
+         if (compiledPipeline != null) {
+            boolean isTerrainPipeline = shine$isSodiumTerrainPipeline(compiledPipeline.info());
+            if (!shine$loggedPipelineCheck) {
+               Identifier vertexShaderId = compiledPipeline.info().getVertexShader();
+               BloomMod.LOGGER.info("Shine Sodium pipeline check: vertexShader={} isTerrainPipeline={}.", vertexShaderId, isTerrainPipeline);
+               shine$loggedPipelineCheck = true;
+            }
+
+            if (isTerrainPipeline) {
+               int programId = compiledPipeline.program().getProgramId();
+               TerrainCausticsRenderer.uploadSodiumTerrainUniforms(programId);
+               shine$setInt(programId, "u_ShineBloomOutputEnabled", BloomSourceRenderer.hasPreparedSourceThisFrame() ? 1 : 0);
+               shine$setInt(programId, "u_ShineUseMasks", BloomMaskConfig.hasCustomMasks() ? 1 : 0);
+               shine$logProgramOutputs(programId);
+            }
          }
       }
    }
