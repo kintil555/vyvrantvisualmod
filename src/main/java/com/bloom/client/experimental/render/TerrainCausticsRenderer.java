@@ -17,7 +17,11 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -38,6 +42,8 @@ public final class TerrainCausticsRenderer {
    private static final int EDGE_FOAM_FALLBACK_HEIGHT = 1024;
    private static final int EDGE_FOAM_SODIUM_TEXTURE_UNIT_INDEX = 13;
    private static final int EDGE_FOAM_SODIUM_TEXTURE_UNIT = 33997;
+   private static final Identifier WATER_STILL = Identifier.withDefaultNamespace("block/water_still");
+   private static final Identifier WATER_FLOW = Identifier.withDefaultNamespace("block/water_flow");
    private static final int SHORE_FOAM_PROFILE_TEXTURE_WIDTH = 128;
    private static final int SHORE_FOAM_PROFILE_ROWS = 3;
    private static final int UPLOAD_TEXTURE_UNIT = 33994;
@@ -112,6 +118,7 @@ public final class TerrainCausticsRenderer {
 
          updateShoreFoamProfileTexture(config);
          UniformLocations uniforms = UNIFORM_LOCATIONS.computeIfAbsent(programId, UniformLocations::new);
+         uploadWaterSpriteRects(uniforms);
          ShoreFoamConfig.BiomeProfile shoreFoam = resolveShoreFoamProfile(config);
          boolean shoreFoamEnabled = config.enabled && shoreFoam.enabled && shoreFoam.opacity > 1.0E-5 && shoreFoam.thickness > 1.0E-5;
          if (!loggedShoreFoamDiagnostics) {
@@ -146,6 +153,41 @@ public final class TerrainCausticsRenderer {
          if (uniforms.shoreFoamColor >= 0) {
             int color = shoreFoam.color & 0xFFFFFF;
             GL20.glUniform3f(uniforms.shoreFoamColor, (float) (color >> 16 & 255) / 255.0F, (float) (color >> 8 & 255) / 255.0F, (float) (color & 255) / 255.0F);
+         }
+      }
+   }
+
+   /**
+    * The shore foam shader only paints foam on the still-water sprite (see
+    * shine_sample_shore_foam's stillWaterFace check), so it needs the UV
+    * rect of that sprite within the block atlas every frame. Without this,
+    * u_ShineWaterStillUv stays at its GLSL zero-default and no fragment's
+    * texcoord can ever fall inside it, silently suppressing all foam.
+    */
+   private static void uploadWaterSpriteRects(UniformLocations uniforms) {
+      if (uniforms.waterStillUv >= 0 || uniforms.waterFlowUv >= 0) {
+         Minecraft minecraft = Minecraft.getInstance();
+         TextureAtlas atlas = null;
+         if (minecraft != null && minecraft.getTextureManager() != null) {
+            AbstractTexture texture = minecraft.getTextureManager().getTexture(TextureAtlas.LOCATION_BLOCKS);
+            if (texture instanceof TextureAtlas blockAtlas) {
+               atlas = blockAtlas;
+            }
+         }
+
+         TextureAtlasSprite still = atlas == null ? null : atlas.getSprite(WATER_STILL);
+         TextureAtlasSprite flow = atlas == null ? null : atlas.getSprite(WATER_FLOW);
+         setSpriteRect(uniforms.waterStillUv, still, atlas);
+         setSpriteRect(uniforms.waterFlowUv, flow, atlas);
+      }
+   }
+
+   private static void setSpriteRect(int location, TextureAtlasSprite sprite, TextureAtlas atlas) {
+      if (location >= 0) {
+         if (sprite != null && atlas != null && sprite != atlas.missingSprite()) {
+            GL20.glUniform4f(location, sprite.getU0(), sprite.getV0(), sprite.getU1(), sprite.getV1());
+         } else {
+            GL20.glUniform4f(location, -2.0F, -2.0F, -1.0F, -1.0F);
          }
       }
    }
@@ -330,7 +372,7 @@ public final class TerrainCausticsRenderer {
       }
    }
 
-   private static record UniformLocations(int regionOrigin, int shoreFoamEnabled, int shoreFoamOpacity, int shoreFoamThickness, int shoreFoamSpeed, int shoreFoamScale, int shoreFoamBreakup, int shoreFoamColor) {
+   private static record UniformLocations(int regionOrigin, int shoreFoamEnabled, int shoreFoamOpacity, int shoreFoamThickness, int shoreFoamSpeed, int shoreFoamScale, int shoreFoamBreakup, int shoreFoamColor, int waterStillUv, int waterFlowUv) {
       private UniformLocations(int programId) {
          this(
             GL20.glGetUniformLocation(programId, "u_ShineTerrainRegionOrigin"),
@@ -340,7 +382,9 @@ public final class TerrainCausticsRenderer {
             GL20.glGetUniformLocation(programId, "u_ShineShoreFoamSpeed"),
             GL20.glGetUniformLocation(programId, "u_ShineShoreFoamScale"),
             GL20.glGetUniformLocation(programId, "u_ShineShoreFoamBreakup"),
-            GL20.glGetUniformLocation(programId, "u_ShineShoreFoamColor")
+            GL20.glGetUniformLocation(programId, "u_ShineShoreFoamColor"),
+            GL20.glGetUniformLocation(programId, "u_ShineWaterStillUv"),
+            GL20.glGetUniformLocation(programId, "u_ShineWaterFlowUv")
          );
       }
    }
