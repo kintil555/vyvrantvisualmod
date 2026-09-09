@@ -94,10 +94,9 @@ public final class TerrainCausticsRenderer {
          bindSodiumEdgeFoamSampler(programId);
       }
    }
-
    public static void uploadSodiumRegionOrigin(int programId, int originX, int originY, int originZ) {
       if (programId != 0 && ShineRenderBackend.canUseRawOpenGl()) {
-         UniformLocations uniforms = UNIFORM_LOCATIONS.computeIfAbsent(programId, UniformLocations::new);
+         UniformLocations uniforms = resolveUniformLocations(programId);
          if (uniforms.regionOrigin >= 0) {
             GL20.glUniform3f(uniforms.regionOrigin, (float) originX, (float) originY, (float) originZ);
          }
@@ -109,6 +108,26 @@ public final class TerrainCausticsRenderer {
       updateShoreFoamProfileTexture(ShoreFoamConfigManager.fastConfig());
    }
 
+   /**
+    * GL implementations commonly recycle a deleted program's integer ID for
+    * the next linked program. Sodium relinks its terrain shader whenever the
+    * source is reloaded (initial load, resource pack swap, render-distance
+    * changes that touch the pipeline), so a raw {@code Map#computeIfAbsent}
+    * keyed only by that ID can silently hand back uniform locations that
+    * belonged to a completely different, now-deleted program - explaining
+    * foam/bloom uniforms that work right after loading and then stop.
+    */
+   private static UniformLocations resolveUniformLocations(int programId) {
+      UniformLocations cached = UNIFORM_LOCATIONS.get(programId);
+      if (cached != null && GL20.glIsProgram(programId)) {
+         return cached;
+      } else {
+         UniformLocations resolved = new UniformLocations(programId);
+         UNIFORM_LOCATIONS.put(programId, resolved);
+         return resolved;
+      }
+   }
+
    private static void uploadUniforms(int programId) {
       if (programId != 0) {
          ShoreFoamConfig config = ShoreFoamConfigManager.fastConfig();
@@ -117,8 +136,8 @@ public final class TerrainCausticsRenderer {
          }
 
          updateShoreFoamProfileTexture(config);
-         UniformLocations uniforms = UNIFORM_LOCATIONS.computeIfAbsent(programId, UniformLocations::new);
-         uploadWaterSpriteRects(uniforms);
+         UniformLocations uniforms = resolveUniformLocations(programId);
+         uploadWaterSpriteRects(programId);
          ShoreFoamConfig.BiomeProfile shoreFoam = resolveShoreFoamProfile(config);
          boolean shoreFoamEnabled = config.enabled && shoreFoam.enabled && shoreFoam.opacity > 1.0E-5 && shoreFoam.thickness > 1.0E-5;
          if (!loggedShoreFoamDiagnostics) {
@@ -163,9 +182,16 @@ public final class TerrainCausticsRenderer {
     * rect of that sprite within the block atlas every frame. Without this,
     * u_ShineWaterStillUv stays at its GLSL zero-default and no fragment's
     * texcoord can ever fall inside it, silently suppressing all foam.
+    *
+    * Deliberately queries glGetUniformLocation fresh every call instead of
+    * going through the UniformLocations cache: this matches the reference
+    * WaterReflectionShaderBridge.uploadWaterSpriteRects, which re-resolves
+    * every uniform on every upload rather than caching by program ID.
     */
-   private static void uploadWaterSpriteRects(UniformLocations uniforms) {
-      if (uniforms.waterStillUv >= 0 || uniforms.waterFlowUv >= 0) {
+   private static void uploadWaterSpriteRects(int programId) {
+      int stillLocation = GL20.glGetUniformLocation(programId, "u_ShineWaterStillUv");
+      int flowLocation = GL20.glGetUniformLocation(programId, "u_ShineWaterFlowUv");
+      if (stillLocation >= 0 || flowLocation >= 0) {
          Minecraft minecraft = Minecraft.getInstance();
          TextureAtlas atlas = null;
          if (minecraft != null && minecraft.getTextureManager() != null) {
@@ -177,8 +203,8 @@ public final class TerrainCausticsRenderer {
 
          TextureAtlasSprite still = atlas == null ? null : atlas.getSprite(WATER_STILL);
          TextureAtlasSprite flow = atlas == null ? null : atlas.getSprite(WATER_FLOW);
-         setSpriteRect(uniforms.waterStillUv, still, atlas);
-         setSpriteRect(uniforms.waterFlowUv, flow, atlas);
+         setSpriteRect(stillLocation, still, atlas);
+         setSpriteRect(flowLocation, flow, atlas);
       }
    }
 
@@ -372,7 +398,7 @@ public final class TerrainCausticsRenderer {
       }
    }
 
-   private static record UniformLocations(int regionOrigin, int shoreFoamEnabled, int shoreFoamOpacity, int shoreFoamThickness, int shoreFoamSpeed, int shoreFoamScale, int shoreFoamBreakup, int shoreFoamColor, int waterStillUv, int waterFlowUv) {
+   private static record UniformLocations(int regionOrigin, int shoreFoamEnabled, int shoreFoamOpacity, int shoreFoamThickness, int shoreFoamSpeed, int shoreFoamScale, int shoreFoamBreakup, int shoreFoamColor) {
       private UniformLocations(int programId) {
          this(
             GL20.glGetUniformLocation(programId, "u_ShineTerrainRegionOrigin"),
@@ -382,9 +408,7 @@ public final class TerrainCausticsRenderer {
             GL20.glGetUniformLocation(programId, "u_ShineShoreFoamSpeed"),
             GL20.glGetUniformLocation(programId, "u_ShineShoreFoamScale"),
             GL20.glGetUniformLocation(programId, "u_ShineShoreFoamBreakup"),
-            GL20.glGetUniformLocation(programId, "u_ShineShoreFoamColor"),
-            GL20.glGetUniformLocation(programId, "u_ShineWaterStillUv"),
-            GL20.glGetUniformLocation(programId, "u_ShineWaterFlowUv")
+            GL20.glGetUniformLocation(programId, "u_ShineShoreFoamColor")
          );
       }
    }
